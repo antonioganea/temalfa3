@@ -69,7 +69,7 @@ class Grammar{
                 {
                     outState = state;
                     it = products[state].erase(it);
-                    cout << "removed" << endl;
+                                                            //cout << "removed" << endl;
                     out = true;
                     return;
                 } else {
@@ -96,22 +96,20 @@ class Grammar{
     }
 
     void insertLiteralProduct(std::string state, char literal){
-        cout << "HEY"<<endl << flush;
         bool exists = false;
         std::string lit(1,literal);
         for ( auto it = products[state].begin(); it != products[state].end(); it++ ){
             if ( *it == lit ){
                 exists = true;
-                cout << "Literal " << lit << " already exists in " << state << endl;
+                                                                        //cout << "Literal " << lit << " already exists in " << state << endl;
                 break;
             }
         }
 
         if ( exists == false ){
-            cout << "Pushed " << lit << " into " << state << endl;
+                                                                        //cout << "Pushed " << lit << " into " << state << endl;
             products[state].push_back(lit);
         }
-        cout << "HEY2"<<endl << flush;
     }
 
     void createS1fromS(){
@@ -139,7 +137,7 @@ class Grammar{
                 break;
             }
 
-            cout << "Cut an epsilon " << cutState << endl;
+                                                                                    //cout << "Cut an epsilon " << cutState << endl;
 
             std::vector<std::pair<std::string,char>> toPush;
 
@@ -148,7 +146,7 @@ class Grammar{
                 for ( auto it = products[state].begin(); it != products[state].end(); it++ ){
                     //cout << "Comparing " << (*it)[1] << " " << state[0] << endl;
                     if ( (*it)[1] == cutState[0] ) {
-                        cout << state << " found match " << *it << " " << cutState << endl;
+                                                                                //cout << state << " found match " << *it << " " << cutState << endl;
                         //insertLiteralProduct(state, (*it)[0]);
                         toPush.push_back(std::pair<std::string,char>(state,(*it)[0]));
                     }
@@ -157,7 +155,7 @@ class Grammar{
 
 
             std::for_each(toPush.cbegin(), toPush.cend(), [this, &cutState, &toPush](std::pair<std::string,char> mypair) {
-                cout << mypair.first << " ----  " << mypair.second << endl;
+                                                                                    //cout << mypair.first << " ----  " << mypair.second << endl;
                 insertLiteralProduct( mypair.first, mypair.second);
             });
 
@@ -546,7 +544,7 @@ int main(){
         grammar.addProduct(state, product);
         if ( state == "S" && product == "eps" ){
             grammar.wasEpsAProductionOfS = true;
-            cout << ">>>wasEpsAProductionOfS set to true" << endl;
+                                                        //cout << ">>>wasEpsAProductionOfS set to true" << endl;
         }
     }
 
