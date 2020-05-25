@@ -483,6 +483,49 @@ Automat NFAtoDFA( Automat & automat ){
     return newAuto;
 }
 
+void prettyPrintAutomat( Automat & automat ) {
+    int links = 0;
+    int finalStateNodes = 0;
+    for ( int i = 0; i < automat.node_number; i++ ){
+        Node node = automat.nodes[i];
+        if ( node.finalState )
+            finalStateNodes++;
+        for (auto const& x : node.m){
+            for ( auto const& elem : x.second ){
+                links++;
+            }
+        }
+    }
+
+    cout << automat.node_number << endl;
+    cout << links << endl;
+
+    for ( int i = 0; i < automat.node_number; i++ ){
+        Node node = automat.nodes[i];
+        //cout << "Node " << i << endl;
+        for (auto const& x : node.m)
+        {
+            //std::cout << x.first  // string (key)
+                      //<< " : ";
+            for ( auto const& elem : x.second ){
+                //cout << elem << " ";
+                cout << i << " " << elem << " " << x.first << endl;
+            }
+            //cout << endl;
+        }
+    }
+
+    cout << automat.initialState << endl;
+    cout << finalStateNodes << endl;
+    for ( int i = 0; i < automat.node_number; i++ ){
+        Node node = automat.nodes[i];
+        if ( node.finalState ){
+            cout << i << " ";
+        }
+    }
+    cout << endl;
+}
+
 
 FILE * fin;
 
@@ -511,7 +554,7 @@ int main(){
 
     grammar.printStates();
 
-        cout << endl;
+    cout << endl;
 
     grammar.prettyDisplay();
 
@@ -521,6 +564,10 @@ int main(){
     grammar.prettyDisplay();
 
     Automat NFAautomat = createNFAfromGrammar(grammar);
+
+    cout << endl;
+
+    prettyPrintAutomat( NFAautomat );
 
     cout << endl;
 
