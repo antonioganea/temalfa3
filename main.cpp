@@ -112,6 +112,21 @@ class Grammar{
         cout << "HEY2"<<endl << flush;
     }
 
+    void createS1fromS(){
+        //cout << "parsing S1" << endl;
+        std::string Sstate = "S";
+        std::string S1state = "S1";
+        std::string eps = EPSILON;
+
+        for ( auto it = products[Sstate].begin(); it != products[Sstate].end(); it++ ){
+            //cout << *it << endl;
+            addProduct(S1state, *it);
+        }
+
+        addProduct(S1state,eps);
+
+    }
+
     void reduceEpsilons(){
 
         while(true){
@@ -145,6 +160,9 @@ class Grammar{
 
 
         }
+
+        cout << endl;
+        createS1fromS();
 
 
     }
