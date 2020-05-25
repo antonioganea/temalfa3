@@ -16,6 +16,7 @@ class Grammar{
     std::map<std::string, std::vector<std::string>> products;
     std::set<std::string> states;
     public:
+    bool wasEpsAProductionOfS = false;
     void setStateUsed(std::string state) {
         //auto search = states.find(state);
         //if (search == states.end()) {
@@ -123,8 +124,9 @@ class Grammar{
             addProduct(S1state, *it);
         }
 
-        addProduct(S1state,eps);
-
+        if ( wasEpsAProductionOfS ){
+            addProduct(S1state,eps);
+        }
     }
 
     void reduceEpsilons(){
@@ -185,6 +187,10 @@ int main(){
 
         cout << state << " -> " << product << endl;
         grammar.addProduct(state, product);
+        if ( state == "S" && product == "eps" ){
+            grammar.wasEpsAProductionOfS = true;
+            cout << ">>>wasEpsAProductionOfS set to true" << endl;
+        }
     }
 
     cout << endl;
