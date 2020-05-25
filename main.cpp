@@ -13,9 +13,9 @@ using namespace std;
 
 class Grammar{
 
+    public:
     std::map<std::string, std::vector<std::string>> products;
     std::set<std::string> states;
-    public:
     bool wasEpsAProductionOfS = false;
     void setStateUsed(std::string state) {
         //auto search = states.find(state);
@@ -170,6 +170,109 @@ class Grammar{
     }
 };
 
+
+struct Node{
+    std::map< char, std::vector<int> > m;
+    bool finalState;
+    Node(){
+        finalState = false;
+    }
+};
+
+struct Automat{
+    int initialState;
+    Node* nodes;
+    int node_number;
+    char* characters;
+
+    Automat(int states){
+        nodes = new Node[states+1];
+        node_number = states;
+
+        characters = new char[256];
+    }
+
+    /*
+    ~Automat() {
+        //delete nodes;
+        //delete characters;
+    }
+    */
+};
+
+Automat createNFAfromGrammar( Grammar & grammar ){
+
+    // count grammar states
+    int stateNo = grammar.states.size() + 1;
+
+    cout << "Creating automata with " << stateNo << "( an extra one ) states" << endl;
+
+    Automat automat(stateNo);
+
+    std::map<std::string,int> codes;
+    int idx = 0;
+    int S1_id;
+    std::for_each(grammar.states.cbegin(), grammar.states.cend(), [&codes, &idx, &S1_id](std::string state) {
+        codes[state] = idx;
+        cout << state << " has code " << idx << endl;
+        if (state=="S1"){
+            S1_id = idx;
+        }
+        idx++;
+    });
+
+    codes["D0"] = idx;
+    cout << "D0 has code " << idx << endl;
+
+    int D0_id = idx;
+
+    for ( auto sit = grammar.states.begin(); sit != grammar.states.end(); sit++ ){
+        std::string state = *sit;
+        for ( auto it = grammar.products[state].begin(); it != grammar.products[state].end(); it++ ){
+            //cout << *it << endl;
+            //addProduct(S1state, *it);
+                                        //cout << *sit << " ----> " << *it << " "  /*<<static_cast<int> ( (*it)[1] ) */<< endl;
+            char destinationStateChar = (*it)[1];
+            if ( (*it)[1] != 0 && destinationStateChar != EPSILON[1] ){
+                cout << *sit << " links to " << destinationStateChar << " by " << (*it)[0] << endl;
+                // a -> b through c;
+                std::string destination(1, destinationStateChar);
+                int aCode = codes[*sit];
+                int bCode = codes[destination];
+                char cChar = (*it)[0];
+                automat.nodes[aCode].m[cChar].push_back(bCode);
+            }
+            if ( (*it)[1] == 0 ){
+                cout << *sit << " links to end (D0)" << " by " << (*it)[0] << endl;
+                int aCode = codes[*sit];
+                //int bCode = codes[destination];
+                char cChar = (*it)[0];
+                automat.nodes[aCode].m[cChar].push_back(D0_id);
+            }
+        }
+    }
+
+    automat.initialState = S1_id;
+    if ( grammar.wasEpsAProductionOfS ){
+        automat.nodes[S1_id].finalState = true;
+    }
+    automat.nodes[D0_id].finalState = true;
+
+
+    return automat;
+
+    /*
+        int a,b;
+        char temp[100];
+        fscanf(fin,"%d%d%s",&a,&b,&temp);
+        char c = temp[0];
+    */
+    //automat.nodes[a].m[c].push_back(b);
+
+
+}
+
+
 FILE * fin;
 
 int main(){
@@ -204,9 +307,9 @@ int main(){
     grammar.reduceEpsilons();
 
     cout << endl;
-        grammar.prettyDisplay();
+    grammar.prettyDisplay();
 
-
+    Automat automat = createNFAfromGrammar(grammar);
 
 
 
