@@ -7,6 +7,7 @@
 #include <set>
 #include <map>
 #include <algorithm>
+#include <cstring>
 using namespace std;
 
 #define EPSILON "eps"
@@ -272,6 +273,216 @@ Automat createNFAfromGrammar( Grammar & grammar ){
 
 }
 
+long long pow( long long b, int exp ){
+    long long res = 1;
+    for ( int i = 0; i < exp; i++ ){
+        res *= b;
+    }
+    return res;
+}
+
+// Suppose you have at most 64 states
+unsigned long long getStatesHash( std::vector<int> states ) {
+    unsigned long long hash = 0;
+
+    for (std::vector<int>::iterator it = states.begin() ; it != states.end(); ++it){
+        hash |= 1 << *it;
+    }
+
+    return hash;
+}
+
+unsigned long long getSingleStateHash( int state ){
+    unsigned long long hash = 1 << state;
+    return hash;
+}
+
+struct StateNumberAllocator{
+private:
+    int currentIndex;
+public:
+    //int states[1024];
+    std::map< unsigned long long, int > m;
+    StateNumberAllocator(){
+        currentIndex = 0;
+    }
+
+    bool isHashTaken( unsigned long long h ){
+        //cout << "Checking if " << h << " is taken" << endl;
+        if ( m[h] ){
+            //cout << "Yep" << endl;
+            return true;
+        }
+        else{
+            //cout << "Nope" << endl;
+            return false;
+        }
+
+    }
+
+    int allocateHash(unsigned long long hash) {
+        if ( m[hash] ){
+            //cout << "Already there" << endl;
+            return m[hash];
+        } else {
+            m[hash] = currentIndex;
+            currentIndex++;
+            //cout << "Allocated!!!!!!!!!!!!!!!!!!!!!! for " << hash << "  " << m[hash] << endl;
+            return m[hash];
+        }
+    }
+
+};
+
+struct Link{
+    int from;
+    int to;
+    char by;
+    bool isFinal;
+    Link( int _from, int _to, char _by, bool _isFinal){
+        from = _from;
+        to = _to;
+        by = _by;
+        isFinal = _isFinal;
+    }
+};
+
+bool checkIfHashContainsFinalState( Automat & automat, unsigned long long hash ) {
+    unsigned long long mask;
+    for ( int i = 0; i < 32; i++ ){
+        mask = 1 << i;
+
+        if ( mask & hash ){
+            if ( automat.nodes[i].finalState ){
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+char letters[] = "abc";
+
+void passLetter( Automat & automat, std::vector<int> & currentStates, char currentChar ){
+    std::vector<int> nextStates;
+
+    for (std::vector<int>::iterator it = currentStates.begin() ; it != currentStates.end(); ++it){ // for all of the current states
+        int currentState = *it;
+
+        for( std::vector<int>::iterator it2 = automat.nodes[currentState].m[currentChar].begin(); it2 != automat.nodes[currentState].m[currentChar].end(); ++it2 ){
+            // from currentState -> jumpingInto by letter 'currentChar'
+
+            int jumpingInto = *it2;
+            nextStates.push_back(jumpingInto);
+        }
+    }
+
+    // currentStates becomes nextStates
+    currentStates.clear();
+    currentStates.assign(nextStates.begin(), nextStates.end());
+}
+
+Automat NFAtoDFA( Automat & automat ){
+    cout << "Transforming NFA to DFA" << endl;
+
+    //Automat newAuto(automat.node_number);
+
+    StateNumberAllocator allocator;
+
+    unsigned long long matrix [automat.node_number][strlen(letters)]; // states x letters matrix of hashes
+
+    for ( int i = 0; i < automat.node_number; i++ ){
+        for ( int C = 0; C < strlen(letters); C++ ) { // for currentLetter = letters[C], for every normal letter
+            char currentChar = letters[C];
+
+            std::vector<int> currentStates;
+            currentStates.push_back(i);
+
+            //cout << "Passing letter " << currentChar << " on state " << i << endl;
+            passLetter(automat, currentStates, currentChar);
+            //printVector(currentStates);
+            //cout << endl;
+
+            matrix[i][C] = getStatesHash(currentStates);
+        }
+
+        //cout << automat.nodes[i].finalState << " " << endl;
+    }
+
+    std::vector<unsigned long long> q;
+    q.push_back(getSingleStateHash(automat.initialState));
+
+    StateNumberAllocator cleanAlloc;
+    int maxStates = 0;
+
+    std::vector<Link> links;
+
+    while (!q.empty())
+    {
+        unsigned long long currentHash = q.back();
+        q.pop_back();
+
+        for ( int C = 0; C < strlen(letters); C++ ) {
+            char currentChar = letters[C];
+
+            unsigned long long mask;
+            unsigned long long composed = 0;
+            for ( int i = 0; i < 32; i++ ){
+                mask = 1 << i;
+
+                if ( mask & currentHash ){
+                    composed |= matrix[i][C];
+                }
+            }
+
+            if ( composed != 0 && !allocator.isHashTaken(composed) ){
+                q.push_back(composed);
+                int allocatedNumber = allocator.allocateHash(composed);
+
+                /*
+                if ( allocator.isHashTaken(composed)){
+                    cout << "DEbug" << allocator.allocateHash(composed) << endl;
+                }
+                */
+                //cout << "Pushed back " << composed << endl;
+
+                bool isFinalState = checkIfHashContainsFinalState(automat, composed);
+                //cout << "R::Current hash " << currentHash << " jumps -> " << composed << " by letter " << currentChar << " (isfinal? " << isFinalState << ")" << endl;
+
+                int fromNode = cleanAlloc.allocateHash(currentHash);
+                int toNode = cleanAlloc.allocateHash(composed);
+
+                if ( fromNode > maxStates )
+                    maxStates = fromNode;
+                if ( toNode > maxStates )
+                    maxStates = toNode;
+                //cout << "T::Current hash " << fromNode << " jumps -> " << toNode << " by letter " << currentChar << endl;
+
+                Link newLink(fromNode, toNode, currentChar, isFinalState);
+                links.push_back(newLink);
+            }
+        }
+    }
+
+    Automat newAuto(maxStates);
+
+    newAuto.initialState = automat.initialState;
+    //newAuto.nodes[i].finalState = automat.nodes[i].finalState;
+
+    //cout << "Constructing new automat with " << maxStates << " states" << endl;
+
+    for (std::vector<Link>::iterator it = links.begin() ; it != links.end(); ++it){
+        newAuto.nodes[it->from].m[it->by].push_back(it->to);
+        cout << it->from << " -> " << it->to << " by " << it->by << endl;
+
+        cout << it->to << " is a final state ? " << it->isFinal << endl;
+        newAuto.nodes[it->to].finalState = it->isFinal;
+    }
+
+    return newAuto;
+}
+
 
 FILE * fin;
 
@@ -309,7 +520,11 @@ int main(){
     cout << endl;
     grammar.prettyDisplay();
 
-    Automat automat = createNFAfromGrammar(grammar);
+    Automat NFAautomat = createNFAfromGrammar(grammar);
+
+    cout << endl;
+
+    Automat DFAAuto = NFAtoDFA(NFAautomat);
 
 
 
